@@ -21,46 +21,48 @@ for index, row in df.iterrows():
     )
     excess_vm_list.append(excess_vm_object)
 
-battery_capacity = 500
-
-for x in excess_vm_list:
-    if x.e_Grid_kWh > x.Consumption:
-        x.Excess_Energy_1MW = x.e_Grid_kWh - x.Consumption
-    else:
-        x.Excess_Energy_1MW = 0
-
-previous_discharge = 0
-for x in excess_vm_list:
-    if  x.Excess_Energy_1MW == 0 and previous_discharge+x.Excess_1MW>battery_capacity*0.2:
-        if previous_discharge - x.Consumption>battery_capacity*0.2:
-            x.Discharge = previous_discharge - x.Consumption
-            previous_discharge = x.Discharge
+def calculate_list(battery_capacity):
+    for x in excess_vm_list:
+        if x.e_Grid_kWh > x.Consumption:
+            x.Excess_Energy_1MW = x.e_Grid_kWh - x.Consumption
         else:
-            previous_discharge = battery_capacity * 0.2
-    else:
-        if previous_discharge + x.Excess_1MW < battery_capacity * 0.8:
-            x.Discharge = previous_discharge + x.Excess_1MW
-            previous_discharge = x.Discharge
-        elif previous_discharge+x.Excess_1MW > battery_capacity*0.8:
-            x.Discharge = battery_capacity*0.8
-            previous_discharge = battery_capacity*0.8
+            x.Excess_Energy_1MW = 0
+    
+    previous_discharge = 0
+    for x in excess_vm_list:
+        if  x.Excess_Energy_1MW == 0 and previous_discharge+x.Excess_1MW>battery_capacity*0.2:
+            if previous_discharge - x.Consumption>battery_capacity*0.2:
+                x.Discharge = previous_discharge - x.Consumption
+                previous_discharge = x.Discharge
+            else:
+                previous_discharge = battery_capacity * 0.2
         else:
-            x.Discharge = previous_discharge
+            if previous_discharge + x.Excess_1MW < battery_capacity * 0.8:
+                x.Discharge = previous_discharge + x.Excess_1MW
+                previous_discharge = x.Discharge
+            elif previous_discharge+x.Excess_1MW > battery_capacity*0.8:
+                x.Discharge = battery_capacity*0.8
+                previous_discharge = battery_capacity*0.8
+            else:
+                x.Discharge = previous_discharge
 
-excess_vm_df = pd.DataFrame([
-    {
-        "Date": x.Date,
-        "e_Grid_kWh": x.e_Grid_kWh,
-        "Consumption": x.Consumption,
-        "Excess_Energy_1MW": x.Excess_Energy_1MW,
-        "Excess_1MW": x.Excess_1MW,
-        "Discharge": x.Discharge,
-        "Charging_of_battery": x.Charging_of_battery,
-        "Additional_energy": x.Additional_energy,
-    }
-    for x in excess_vm_list
-])
 
-output_excel_path = r"C:\Users\rahid\Documents\projects\Excess Energy\Output_Excess_Energy.xlsx"
-
-excess_vm_df.to_excel(output_excel_path, index=False)
+def export_to_excel():
+    excess_vm_df = pd.DataFrame([
+        {
+            "Date": x.Date,
+            "e_Grid_kWh": x.e_Grid_kWh,
+            "Consumption": x.Consumption,
+            "Excess_Energy_1MW": x.Excess_Energy_1MW,
+            "Excess_1MW": x.Excess_1MW,
+            "Discharge": x.Discharge,
+            "Charging_of_battery": x.Charging_of_battery,
+            "Additional_energy": x.Additional_energy,
+        }
+        for x in excess_vm_list
+    ])
+    
+    output_excel_path = r"C:\Users\rahid\Documents\projects\Excess Energy\Output_Excess_Energy.xlsx"
+    
+    excess_vm_df.to_excel(output_excel_path, index=False)
+    print("Export olundu!!!")
