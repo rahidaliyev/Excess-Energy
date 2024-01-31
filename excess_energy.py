@@ -1,3 +1,4 @@
+from datetime import datetime
 import math
 import pandas as pd
 from Excess_VM import Excess_VM
@@ -20,7 +21,7 @@ for index, row in df.iterrows():
     )
     excess_vm_list.append(excess_vm_object)
 
-sum = 0
+battery_capacity = 500
 
 for x in excess_vm_list:
     if x.e_Grid_kWh > x.Consumption:
@@ -29,16 +30,37 @@ for x in excess_vm_list:
         x.Excess_Energy_1MW = 0
 
 previous_discharge = 0
-first_iteration = True
 for x in excess_vm_list:
-    if not math.isnan(x.Discharge) and x.Excess_1MW == 0:
-        if first_iteration:
+    if  x.Excess_Energy_1MW == 0 and previous_discharge+x.Excess_1MW>battery_capacity*0.2:
+        if previous_discharge - x.Consumption>battery_capacity*0.2:
+            x.Discharge = previous_discharge - x.Consumption
             previous_discharge = x.Discharge
-            first_iteration = False
-            continue
-        x.Discharge = previous_discharge - x.Consumption
-        previous_discharge = x.Discharge
+        else:
+            previous_discharge = battery_capacity * 0.2
     else:
-        x.Discharge = previous_discharge
+        if previous_discharge + x.Excess_1MW < battery_capacity * 0.8:
+            x.Discharge = previous_discharge + x.Excess_1MW
+            previous_discharge = x.Discharge
+        elif previous_discharge+x.Excess_1MW > battery_capacity*0.8:
+            x.Discharge = battery_capacity*0.8
+            previous_discharge = battery_capacity*0.8
+        else:
+            x.Discharge = previous_discharge
 
-print(excess_vm_list[45].Discharge)
+excess_vm_df = pd.DataFrame([
+    {
+        "Date": x.Date,
+        "e_Grid_kWh": x.e_Grid_kWh,
+        "Consumption": x.Consumption,
+        "Excess_Energy_1MW": x.Excess_Energy_1MW,
+        "Excess_1MW": x.Excess_1MW,
+        "Discharge": x.Discharge,
+        "Charging_of_battery": x.Charging_of_battery,
+        "Additional_energy": x.Additional_energy,
+    }
+    for x in excess_vm_list
+])
+
+output_excel_path = r"C:\Users\rahid\Documents\projects\Excess Energy\Output_Excess_Energy.xlsx"
+
+excess_vm_df.to_excel(output_excel_path, index=False)
