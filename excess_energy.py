@@ -20,9 +20,10 @@ for index, row in df.iterrows():
         Additional_energy=row["Additional_energy"],
     )
     excess_vm_list.append(excess_vm_object)
-
-def calculate_list(battery_capacity):
+global kwh_coefficient
+def calculate_list(battery_capacity,kwh_coefficient):  
     for x in excess_vm_list:
+        x.e_Grid_kWh = kwh_coefficient*x.e_Grid_kWh 
         if x.e_Grid_kWh > x.Consumption:
             x.Excess_Energy_1MW = x.e_Grid_kWh - x.Consumption
         else:
@@ -37,17 +38,17 @@ def calculate_list(battery_capacity):
             else:
                 previous_discharge = battery_capacity * 0.2
         else:
-            if previous_discharge + x.Excess_1MW < battery_capacity * 0.8:
-                x.Discharge = previous_discharge + x.Excess_1MW
+            if previous_discharge + x.Excess_Energy_1MW < battery_capacity * 0.8:
+                x.Discharge = previous_discharge + x.Excess_Energy_1MW
                 previous_discharge = x.Discharge
-            elif previous_discharge+x.Excess_1MW > battery_capacity*0.8:
+            elif previous_discharge+x.Excess_Energy_1MW >= battery_capacity*0.8:
                 x.Discharge = battery_capacity*0.8
                 previous_discharge = battery_capacity*0.8
             else:
                 x.Discharge = previous_discharge
 
 
-def export_to_excel():
+def export_to_excel(kwh_coefficient,battery_capacity):
     excess_vm_df = pd.DataFrame([
         {
             "Date": x.Date,
@@ -62,7 +63,7 @@ def export_to_excel():
         for x in excess_vm_list
     ])
     
-    output_excel_path = r"C:\Users\rahid\Documents\projects\Excess Energy\Output_Excess_Energy.xlsx"
+    output_excel_path = f"C:\\Users\\rahid\\Documents\\projects\\Excess Energy\\Output_Excess_Energy_{kwh_coefficient}-MW_{battery_capacity}-kWh.xlsx"
     
     excess_vm_df.to_excel(output_excel_path, index=False)
     print("Export olundu!!!")
