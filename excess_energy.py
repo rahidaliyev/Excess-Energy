@@ -16,7 +16,6 @@ for index, row in df.iterrows():
         Excess_Energy_1MW=row["Excess_Energy_1MW"],
         Excess_1MW=row["Excess_1MW"],
         Discharge=row["Discharge"],
-        Charging_of_battery=row["Charging_of_battery"],
         Additional_energy=row["Additional_energy"],
     )
     excess_vm_list.append(excess_vm_object)
@@ -32,21 +31,22 @@ def calculate_list(battery_capacity,kwh_coefficient):
     previous_discharge = 0
     for x in excess_vm_list:
         if  x.Excess_Energy_1MW == 0 and previous_discharge+x.Excess_1MW>battery_capacity*0.2:
+            x.Additional_energy = 0
             if previous_discharge - x.Consumption>battery_capacity*0.2:
                 x.Discharge = previous_discharge - x.Consumption
                 previous_discharge = x.Discharge
             else:
                 previous_discharge = battery_capacity * 0.2
+                x.Discharge = previous_discharge
         else:
             if previous_discharge + x.Excess_Energy_1MW < battery_capacity * 0.8:
                 x.Discharge = previous_discharge + x.Excess_Energy_1MW
                 previous_discharge = x.Discharge
+                x.Additional_energy = 0
             elif previous_discharge+x.Excess_Energy_1MW >= battery_capacity*0.8:
                 x.Discharge = battery_capacity*0.8
+                x.Additional_energy = previous_discharge+x.Excess_Energy_1MW - battery_capacity*0.8  
                 previous_discharge = battery_capacity*0.8
-            else:
-                x.Discharge = previous_discharge
-
 
 def export_to_excel(kwh_coefficient,battery_capacity):
     excess_vm_df = pd.DataFrame([
@@ -57,7 +57,6 @@ def export_to_excel(kwh_coefficient,battery_capacity):
             "Excess_Energy_1MW": x.Excess_Energy_1MW,
             "Excess_1MW": x.Excess_1MW,
             "Discharge": x.Discharge,
-            "Charging_of_battery": x.Charging_of_battery,
             "Additional_energy": x.Additional_energy,
         }
         for x in excess_vm_list
